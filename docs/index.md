@@ -12,7 +12,7 @@ hidden:
 maxdepth: 1
 ---
 self
-content/usage
+content/Context
 content/gettingstarted
 content/api/index
 content/codeofconduct
