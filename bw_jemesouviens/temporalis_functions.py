@@ -59,7 +59,7 @@ def create_distribution(start,end,dist_type):
     return fixed_distribution
 
 
-    # Function for adding temporal distributions to corresponding exchanges
+# Function for adding temporal distributions to corresponding exchanges
 
 def add_temporal_distributions(df_nodes, df_temporal_distributions):
     '''
@@ -79,3 +79,13 @@ def add_temporal_distributions(df_nodes, df_temporal_distributions):
                 exc.save()
 
     return
+
+# Run temporal LCA and get timeline dataframe with impacts
+
+def calculate_timeline(df, lca)
+    add_temporal_distributions(df)
+
+    templca = bt.TemporalisLCA(lca, cutoff=0.02)
+
+    tl = templca.build_timeline()
+    dfa = tl.build_dataframe()  
