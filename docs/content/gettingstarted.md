@@ -1,8 +1,51 @@
 # Getting Started
 
-To start the bw_jemesouviens interactive temporalization user interface:
+nw_jemesouviens can be installed on both a Windows and macOS
 
-Install the package from PyPi Test:
+::::{tab-set}
+
+:::{tab-item} Linux, Windows, or MacOS (x64)
+
+1. Create a new Conda environment (in this example named `souviens`):
+
+```console
+conda create -n souviens 
+```
+
+2. Activate the environment:
+
+```console
+conda activate souviens
+```
+
+3. Install the package from PyPi Test:
+
+```python
+py -m pip install --index-url https://test.pypi.org/simple/ bw_jemesouviens
+```
+
+Execute the main script of the package:
+```python
+py -m bw_jemesouviens
+```
+
+:::
+
+:::{tab-item} macOS (Apple Silicon/ARM)
+
+1. Create a new Conda environment (in this example named `souviens`):
+
+```console
+conda create -n souviens 
+```
+
+2. Activate the environment:
+
+```console
+conda activate souviens
+```
+
+3. Install the package from PyPi Test:
 
 ```python
 python -m pip install --index-url https://test.pypi.org/simple/ bw_jemesouviens
@@ -12,3 +55,4 @@ Execute the main script of the package:
 ```python
 python -m bw_jemesouviens
 ```
+:::
