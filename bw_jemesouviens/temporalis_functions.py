@@ -81,14 +81,37 @@ def add_temporal_distributions(df_nodes, df_temporal_distributions):
     return
 
 def characterization(cfs,flow):
+    """
+    apply characterization method to a biosphere flow
+            Parameters:
+                    cfs: lcia method object
+                    flow: node id of a biosphere flow
+            Returns:
+                    val: impact for specified biosphere flow
+                    np.nan if flow was not found
+    """
     cur_node = bd.get_activity(id=flow)
     code = cur_node.as_dict()["code"]
     for idx, val in cfs:
         if idx[1] == code:
             print(bd.get_activity(id=flow)["name"], val)
             return val
+    print(f"flow {flow} not characterized")
+    return np.nan
+    
 
-def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change','global warming potential (GWP100)'),):
+def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change','global warming potential (GWP100)')):
+    """
+    applies the CFs of a selected method to the "amount" column of a df that specifies the biosphere flows in a "flow" column.
+            Parameters:
+                    data (pd.DataFrame): dataframe of structure
+                        |index(arbitrary)|flow(the node id of the biosphere flow)|amount(flow inventory)|, more columns are allowed.
+                    use_method (tuple): tuple defining the lcia method to apply. Default: GWP100 of the EF v3.1
+            Returns:
+                    data: dataframe of structure
+                        |index(arbitrary)|flow(the node id of the biosphere flow)|amount(flow inventory)|CF(for respective flow)|impact|
+                    use_method: the tuple of the lcia method used (could be default or the specified one)
+    """
     method = bd.Method(use_method)
     cfs = method.load()
     data["CF"] = data["flow"].apply(lambda x: characterization(cfs,x))
@@ -98,10 +121,21 @@ def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change'
 
 # Run temporal LCA and get timeline dataframe with impacts
 
-def calculate_timeline(df, lca):
+def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001):
+    """
+            Parameters:
+                    df (pd.DataFrame): dataframe specifying node ids and their uncertainty parameters.
+                    lca (lca object): lca object to temporalize (has to be the same that the df was created from)
+                    temporal_graph_cutoff (float):
+            returns:
+                    characterized_timeline (pd.DataFrame): a dataframe indexed with np.datetime in annual resolution,
+                    specifying the annual impact of the product system
+                    used_characterization (tuple): the label of the used characterization method
+    """
+    print("Temporalizing lca object. Note that temporalization is added to the database on disc.")
     add_temporal_distributions(df)
-
-    templca = bt.TemporalisLCA(lca, cutoff=0.02)
+    # convert lca object to temporalized lca object
+    templca = bt.TemporalisLCA(lca, cutoff=temporal_graph_cutoff)
     tl = templca.build_timeline()
     dfa = tl.build_dataframe()
 
