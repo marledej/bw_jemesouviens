@@ -21,7 +21,7 @@ conda activate souviens
 3. Install the package from PyPi Test:
 
 ```python
-py -m pip install --index-url https://test.pypi.org/simple/ bw_jemesouviens
+py -m pip install --index-url https://test.pypi.org/simple/bw_jemesouviens
 ```
 
 Execute the main script of the package:
