@@ -40,7 +40,8 @@ def import_useeio():
     return chosen_database
 
 
-def create_nodes_and_edges_lists(chosen_database, user_activity_name, user_location, user_amount, user_method, user_cutoff):
+def create_nodes_and_edges_lists(chosen_database, user_activity_name, user_method,*,user_amount=1, user_location="",
+                                 user_cutoff=0.01):
     '''
     Calculates LCA object with specified user inputs
     Runs graph traversal and returns the sorted contributing nodes above the cutoff value
@@ -157,7 +158,7 @@ def remove_markets_ancestors(df_nodes, df_edges):
     return df_nodes_without_markets_ancestors
 
 
-def adjust_nodes_list(chosen_database, df_nodes, user_market, user_transport):
+def adjust_nodes_list(chosen_database, df_nodes, *,user_market=None, user_transport=None):
     '''
     Adapts the nodes list according to options selected by the user in panel :
         Removes upstream market activities if user_market="auto"
