@@ -121,23 +121,29 @@ def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change'
 
 # Run temporal LCA and get timeline dataframe with impacts
 
-def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001):
+def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
     """
+    calculating the lca timeline. note that the temporal_graph_cutoff and max_calc can notably influence the final results.
+    Timeline does not allow to distinguish individual processes/activities
             Parameters:
                     df (pd.DataFrame): dataframe specifying node ids and their uncertainty parameters.
                     lca (lca object): lca object to temporalize (has to be the same that the df was created from)
-                    temporal_graph_cutoff (float):
+                    temporal_graph_cutoff (float): cutoff under which nodes are not considered for graph traversal
+                    max_calc (int): maximum number of calculations allowed for the graph traversal
             returns:
-                    characterized_timeline (pd.DataFrame): a dataframe indexed with np.datetime in annual resolution,
+                    characterized_annual (pd.DataFrame): a dataframe indexed with np.datetime in annual resolution,
                     specifying the annual impact of the product system
                     used_characterization (tuple): the label of the used characterization method
     """
     print("Temporalizing lca object. Note that temporalization is added to the database on disc.")
     add_temporal_distributions(df)
     # convert lca object to temporalized lca object
-    templca = bt.TemporalisLCA(lca, cutoff=temporal_graph_cutoff)
+    templca = bt.TemporalisLCA(lca,
+                               cutoff=temporal_graph_cutoff,
+                               max_calc=max_calc)
     tl = templca.build_timeline()
     dfa = tl.build_dataframe()
 
     characterized_timeline, used_characterization = apply_characterization_factors(dfa,use_method = lca.method)
-    return characterized_timeline,used_characterization
+    characterized_annual = characterized_timeline.set_index("date")[["amount","impact"]].resample("YE", label="left").sum()
+    return characterized_annual,used_characterization
