@@ -80,12 +80,30 @@ def add_temporal_distributions(df_nodes, df_temporal_distributions):
 
     return
 
+def characterization(cfs,flow):
+    cur_node = bd.get_activity(id=flow)
+    code = cur_node.as_dict()["code"]
+    for idx, val in cfs:
+        if idx[1] == code:
+            print(bd.get_activity(id=flow)["name"], val)
+            return val
+
+def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change','global warming potential (GWP100)'),):
+    method = bd.Method(use_method)
+    cfs = method.load()
+    data["CF"] = data["flow"].apply(lambda x: characterization(cfs,x))
+    data["impact"] = data["CF"]*data["amount"]
+    return data, use_method
+
+
 # Run temporal LCA and get timeline dataframe with impacts
 
-def calculate_timeline(df, lca)
+def calculate_timeline(df, lca):
     add_temporal_distributions(df)
 
     templca = bt.TemporalisLCA(lca, cutoff=0.02)
-
     tl = templca.build_timeline()
-    dfa = tl.build_dataframe()  
+    dfa = tl.build_dataframe()
+
+    characterized_timeline, used_characterization = apply_characterization_factors(dfa,use_method = lca.method)
+    return characterized_timeline,used_characterization
