@@ -61,20 +61,22 @@ def create_distribution(start,end,dist_type):
 
 # Function for adding temporal distributions to corresponding exchanges
 
-def add_temporal_distributions(df_nodes, df_temporal_distributions):
+def add_temporal_distributions(df_nodes):
     '''
     Assigns user-defined fixed temporal distributions to exchanges of corresponding nodes
 
             Parameters:
-                    df_node: dataframe containing nodes to temporalize and temporal distributions
+                    df_nodes: dataframe containing nodes to temporalize and temporal distributions
+                    |node_id|start|end|dist_type|parameter| and more columns. do not put node_id as index.
+                    node_id should be the id that allows to identify the node in the database
     '''
 
     for nrow, node in df_nodes.iterrows():
         for exc in bd.get_node(id = node.node_id).exchanges():
-            if node.node_id  in df_temporal_distributions.index.to_list() and exc['type'] != 'production':
+            if exc['type'] != 'production':
                 exc['temporal_distribution'] = create_distribution(
-                    df_temporal_distributions.at[node.node_id, 'start'], df_temporal_distributions.at[node.node_id, 'end'], 
-                    (df_temporal_distributions.at[node.node_id, 'dist_type'], df_temporal_distributions.at[node.node_id, 'parameter'])
+                    df_nodes.at[node.node_id, 'start'], df_nodes.at[node.node_id, 'end'], 
+                    (df_nodes.at[node.node_id, 'dist_type'], df_nodes.at[node.node_id, 'parameter'])
                 )
                 exc.save()
 
@@ -127,6 +129,7 @@ def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
     Timeline does not allow to distinguish individual processes/activities
             Parameters:
                     df (pd.DataFrame): dataframe specifying node ids and their uncertainty parameters.
+
                     lca (lca object): lca object to temporalize (has to be the same that the df was created from)
                     temporal_graph_cutoff (float): cutoff under which nodes are not considered for graph traversal
                     max_calc (int): maximum number of calculations allowed for the graph traversal
