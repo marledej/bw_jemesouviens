@@ -1,3 +1,9 @@
 # Getting Started
 
-You can install jemesouviens via XX 
+To start the bw_jemesouviens interactive temporalization user interface:
+
+Install the package from PyPi Test:
+python -m pip install --index-url https://test.pypi.org/simple/ bw_jemesouviens
+
+Execute the main script of the package:
+python -m bw_jemesouviens
