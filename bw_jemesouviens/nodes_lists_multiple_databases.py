@@ -27,6 +27,10 @@ from bw_graph_tools import NewNodeEachVisitGraphTraversal
 
 
 def import_useeio():
+    '''
+    If USEEIO-1.1 project not present, create project with database USEEIO-1.1
+    '''
+
     if 'USEEIO-1.1' not in bw2data.projects:
         bw2io.install_project(project_key='USEEIO-1.1', overwrite_existing=True)
     
@@ -37,6 +41,24 @@ def import_useeio():
 
 
 def create_nodes_and_edges_lists(chosen_database, user_activity_name, user_location, user_amount, user_method, user_cutoff):
+    '''
+    Calculates LCA object with specified user inputs
+    Runs graph traversal and returns the sorted contributing nodes above the cutoff value
+    Returns a graph traversal dictionary with nodes and one with edges
+    
+    Parameters:
+        chosen_database (str): database chosen by the user via panel
+        user_activity_name (str): activity name chosen by the user via panel
+        user_location (str): location chosen by the user via panel
+        user_amount (int): amount of activity, constituting the functional unit
+        user_method (str): method name chosen by the user via panel
+        user_cutoff (float): cutoff set by the user via panel
+
+    Returns:
+        df_nodes (dataframe): dataframe of ordered contributing nodes
+        df_edges (dataframe): dataframe of corresponding edges
+    '''
+
     # Perform LCA
     if chosen_database.name == 'ecoinvent':
         chosen_node = [n for n in chosen_database if user_activity_name in n["name"] and user_location in n['location']][0]
@@ -89,6 +111,17 @@ def create_nodes_and_edges_lists(chosen_database, user_activity_name, user_locat
 
 
 def get_producers_ids(node_unique_id, df_edges):
+    '''
+    Returns the producers associated to a node
+    
+    Parameters:
+        node_unique_id (int)
+        df_edges (dataframe): dataframe of edges
+
+    Returns:
+        producers_id (array): producers of a unique node
+    '''
+
     producers_ids = []
     for edge_id in df_edges.index.tolist(): 
         if df_edges.at[edge_id,'consumer_unique_id']==node_unique_id:
@@ -98,6 +131,17 @@ def get_producers_ids(node_unique_id, df_edges):
 
 
 def remove_markets_ancestors(df_nodes, df_edges):
+    '''
+    If market is in the name of the node, removes the upstream market activity nodes also contained in df_nodes 
+    
+    Parameters:
+        df_nodes (dataframe): dataframe of graph traversal contributing nodes
+        df_edges (dataframe): dataframe of corresponding to the nodes
+
+    Returns:
+        df_nodes_without_markets_ancestors (dataframe): df_nodes without the entries corresponding upstream market activities
+    '''
+
     df_nodes_without_markets_ancestors = df_nodes.copy()
     to_remove = []
     for n in range (1,len(df_nodes)): # this excludes the demand node in case it is a market
@@ -114,6 +158,20 @@ def remove_markets_ancestors(df_nodes, df_edges):
 
 
 def adjust_nodes_list(chosen_database, df_nodes, user_market, user_transport):
+    '''
+    Adapts the nodes list according to options selected by the user in panel :
+        Removes upstream market activities if user_market="auto"
+        Removes freight transport nodes if user_transport="auto", assuming the user would not want to temporalize transportation
+    
+    Parameters:
+        chosen_database (str): database chosen by the user in panel
+        df_nodes (dataframe): dataframe of graph traversal contributing nodes
+        user_market (str): option to remove upstream market activities
+        user_transport (str): option to remove freight nodes
+    Returns:
+        df_nodes_adjusted (dataframe): df_nodes with adjusted upstream market activities and freight
+    '''
+
     # Remove producers (and producers of producers, etc.) of markets if automated market scenario
     if user_market == "auto":
         df_nodes_adjusted = remove_markets_ancestors(df_nodes)
@@ -132,6 +190,20 @@ def adjust_nodes_list(chosen_database, df_nodes, user_market, user_transport):
 
 
 def create_dataframe_for_temporalisation(df_nodes_adjusted, df_edges):
+    '''
+    Creates a dataframe containing raw data of contributing nodes:
+        activity_ids (equivalent to node ids here)
+        edge_ids
+        direct emissions
+        cumulative score
+        
+    Parameters:
+        df_nodes_adjusted (dataframe): dataframe of adjusted graph traversal contributing nodes
+        df_edges (dataframe): dataframe of corresponding edges
+    Returns:
+        df_for_temporalisation (dataframe): raw df with contributing node ids
+    '''
+
     # Initializing
     df_for_temporalisation = df_nodes_adjusted.copy()
     # Adding useful columns
@@ -144,6 +216,15 @@ def create_dataframe_for_temporalisation(df_nodes_adjusted, df_edges):
 
 
 def create_dataframe_for_user(df_for_temporalisation):
+    '''
+    Creates a user-friendly dataframe containing information on contributing activities (name, consumer) and impact scores :        
+    
+    Parameters:
+        df_for_temporalisation (dataframe): raw df containing ids of contributing nodes and edges
+    Returns:
+        df_for_user (dataframe): user-friendly df with activity names and impact scores
+    '''
+
     df_for_user = df_for_temporalisation.copy()
     # Removing useless columns
     df_for_user.drop(labels=['consumer_id','activity_datapackage_id','activity_index','reference_product_datapackage_id','reference_product_index','reference_product_production_amount', 'supply_amount'], axis=1, inplace=True)
