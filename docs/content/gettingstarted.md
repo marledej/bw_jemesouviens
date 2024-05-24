@@ -29,6 +29,12 @@ Execute the main script of the package:
 py -m bw_jemesouviens
 ```
 
+```{button-link} https://www.youtube.com/watch?v=dQw4w9WgXcQ
+:color: info
+:expand:
+{octicon}`light-bulb;1em` Something not working? Click here!
+```
+
 :::
 
 :::{tab-item} macOS (Apple Silicon/ARM)
@@ -55,4 +61,13 @@ Execute the main script of the package:
 ```python
 python -m bw_jemesouviens
 ```
+
+```{button-link} https://www.youtube.com/watch?v=dQw4w9WgXcQ
+:color: info
+:expand:
+{octicon}`light-bulb;1em` Something not working? Click here!
+```
+
 :::
+
+::::
