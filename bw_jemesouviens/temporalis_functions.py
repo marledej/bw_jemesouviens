@@ -61,31 +61,92 @@ def create_distribution(start,end,dist_type):
 
 # Function for adding temporal distributions to corresponding exchanges
 
-def add_temporal_distributions(df_nodes, df_temporal_distributions):
+def add_temporal_distributions(df_nodes):
     '''
     Assigns user-defined fixed temporal distributions to exchanges of corresponding nodes
 
             Parameters:
-                    df_node: dataframe containing nodes to temporalize and temporal distributions
+                    df_nodes: dataframe containing nodes to temporalize and temporal distributions
+                    |node_id|start|end|dist_type|parameter| and more columns. do not put node_id as index.
+                    node_id should be the id that allows to identify the node in the database
     '''
 
     for nrow, node in df_nodes.iterrows():
         for exc in bd.get_node(id = node.node_id).exchanges():
-            if node.node_id  in df_temporal_distributions.index.to_list() and exc['type'] != 'production':
+            if exc['type'] != 'production':
                 exc['temporal_distribution'] = create_distribution(
-                    df_temporal_distributions.at[node.node_id, 'start'], df_temporal_distributions.at[node.node_id, 'end'], 
-                    (df_temporal_distributions.at[node.node_id, 'dist_type'], df_temporal_distributions.at[node.node_id, 'parameter'])
+                    df_nodes.at[node.node_id, 'start'], df_nodes.at[node.node_id, 'end'], 
+                    (df_nodes.at[node.node_id, 'dist_type'], df_nodes.at[node.node_id, 'parameter'])
                 )
                 exc.save()
 
     return
 
+def characterization(cfs,flow):
+    """
+    apply characterization method to a biosphere flow
+            Parameters:
+                    cfs: lcia method object
+                    flow: node id of a biosphere flow
+            Returns:
+                    val: impact for specified biosphere flow
+                    np.nan if flow was not found
+    """
+    cur_node = bd.get_activity(id=flow)
+    code = cur_node.as_dict()["code"]
+    for idx, val in cfs:
+        if idx[1] == code:
+            print(bd.get_activity(id=flow)["name"], val)
+            return val
+    print(f"flow {flow} not characterized")
+    return np.nan
+    
+
+def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change','global warming potential (GWP100)')):
+    """
+    applies the CFs of a selected method to the "amount" column of a df that specifies the biosphere flows in a "flow" column.
+            Parameters:
+                    data (pd.DataFrame): dataframe of structure
+                        |index(arbitrary)|flow(the node id of the biosphere flow)|amount(flow inventory)|, more columns are allowed.
+                    use_method (tuple): tuple defining the lcia method to apply. Default: GWP100 of the EF v3.1
+            Returns:
+                    data: dataframe of structure
+                        |index(arbitrary)|flow(the node id of the biosphere flow)|amount(flow inventory)|CF(for respective flow)|impact|
+                    use_method: the tuple of the lcia method used (could be default or the specified one)
+    """
+    method = bd.Method(use_method)
+    cfs = method.load()
+    data["CF"] = data["flow"].apply(lambda x: characterization(cfs,x))
+    data["impact"] = data["CF"]*data["amount"]
+    return data, use_method
+
+
 # Run temporal LCA and get timeline dataframe with impacts
 
-def calculate_timeline(df, lca)
+def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
+    """
+    calculating the lca timeline. note that the temporal_graph_cutoff and max_calc can notably influence the final results.
+    Timeline does not allow to distinguish individual processes/activities
+            Parameters:
+                    df (pd.DataFrame): dataframe specifying node ids and their uncertainty parameters.
+
+                    lca (lca object): lca object to temporalize (has to be the same that the df was created from)
+                    temporal_graph_cutoff (float): cutoff under which nodes are not considered for graph traversal
+                    max_calc (int): maximum number of calculations allowed for the graph traversal
+            returns:
+                    characterized_annual (pd.DataFrame): a dataframe indexed with np.datetime in annual resolution,
+                    specifying the annual impact of the product system
+                    used_characterization (tuple): the label of the used characterization method
+    """
+    print("Temporalizing lca object. Note that temporalization is added to the database on disc.")
     add_temporal_distributions(df)
-
-    templca = bt.TemporalisLCA(lca, cutoff=0.02)
-
+    # convert lca object to temporalized lca object
+    templca = bt.TemporalisLCA(lca,
+                               cutoff=temporal_graph_cutoff,
+                               max_calc=max_calc)
     tl = templca.build_timeline()
-    dfa = tl.build_dataframe()  
+    dfa = tl.build_dataframe()
+
+    characterized_timeline, used_characterization = apply_characterization_factors(dfa,use_method = lca.method)
+    characterized_annual = characterized_timeline.set_index("date")[["amount","impact"]].resample("YE", label="left").sum()
+    return characterized_annual,used_characterization

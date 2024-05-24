@@ -8,17 +8,7 @@ import panel as pn
 import numpy as np
 from math import pi
 import datetime
-
-from bokeh.palettes import Category20c, Category20
-from bokeh.plotting import figure
-from bokeh.transform import cumsum
-from bokeh.models import Div
-from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource, Slider, TextInput
-from bokeh.palettes import HighContrast3
-from bokeh.plotting import show
-#from bokeh.io import show
-from bokeh.models import ColumnDataSource
+import bokeh
 
 
 
@@ -122,6 +112,10 @@ widget_tabulator = pn.widgets.Tabulator(
     df_activities,
 )
 
+widget_button_update_figure = pn.widgets.Button(
+    name='Click me to update Figure!',
+    button_type='primary'
+)
 
 # CALCULATION FUNCTIONS ######################################################
 
@@ -167,80 +161,10 @@ def updating_col_data_frame(
 
 # PLOTTING FUNCTIONS #########################################################
 
-x = []
-y = []
-'''
-def create_bokeh_figure(
-    x: list,
-    y: list
-):
-    bokeh_figure = figure(
-        x_range=(0,len(x)),
-        height=300,
-        title="Example",
-        toolbar_location=None,
-        tools=""
-    )
-    bokeh_figure.vbar(x=x, top=y, width=0.9)
-    bokeh_figure.xgrid.grid_line_color = None
-    bokeh_figure.y_range.start = 0
-    
-    return bokeh_figure
-'''
-def create_bokeh_figure(dummy_df) : 
-
-# Convertir les dates en années
-    dummy_df['year'] = dummy_df['date'].dt.year
-
-# Regrouper par année et activité, puis sommer les impacts
-    grouped_df = dummy_df.groupby(['year', 'activity'])['impact'].sum().unstack(fill_value=0)
-
-# Convertir les années en chaînes de caractères
-    grouped_df.index = grouped_df.index.astype(str)
-
-# Convertir le DataFrame groupé en ColumnDataSource
-    source = ColumnDataSource(grouped_df.reset_index())
-
-# Les années serviront de catégories pour l'axe x
-    years = grouped_df.index.tolist()
-
-# Les activités serviront de catégories pour les barres empilées
-    activities = grouped_df.columns.tolist()
-
-# Couleurs pour les différentes activités
-    colors = [
-        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-        "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
-        "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5"
-    ]  # Ajoutez plus de couleurs si nécessaire
-
-# Vérifier le nombre de couleurs et ajuster si nécessaire
-    if len(colors) < len(activities):
-        colors = colors * (len(activities) // len(colors)) + colors[:len(activities) % len(colors)]
-    elif len(colors) > len(activities):
-        colors = colors[:len(activities)]
-
-# Créer un graphique
-    p = figure(x_range=years, height=350, title="Emissions des Activités par Année",
-               toolbar_location=None, tools="")
-
-# Ajouter des barres empilées
-    p.vbar_stack(stackers=activities, x='year', width=0.9, color=colors, source=source,
-                 legend_label=activities)
-
-# Configurer les axes
-    p.y_range.start = 0
-    p.xgrid.grid_line_color = None
-    p.yaxis.axis_label = 'Impact'
-    p.xaxis.axis_label = 'Année'
-    p.axis.minor_tick_line_color = None
-    p.outline_line_color = None
-    p.legend.location = "top_left"
-    p.legend.orientation = "horizontal"
 
 #example : 
     # Exemple de DataFrame
+    '''
 dummy_df = pd.DataFrame(np.array([
     [datetime.datetime.now(), 1, 'a flow', 'an activity'],
     [datetime.datetime(2022, 5, 1), 2, 'b flow', 'an activity'],
@@ -251,11 +175,60 @@ dummy_df = pd.DataFrame(np.array([
 ]), columns=['date', 'impact', 'flow', 'activity'])
 
 df_temporalized=dummy_df
+'''
 
-pane_bokeh = pn.pane.Bokeh(
-    create_bokeh_figure(df_temporalized),
-    theme="dark_minimal"
-)
+def dataframe_manipulation(df: pd.DataFrame) :
+    # Convertir les dates en années
+    df['year'] = df['date'].dt.year
+    # Regrouper par année et activité, puis sommer les impacts
+    grouped_df = df.groupby(['year', 'activity'])['impact'].sum().unstack(fill_value=0)
+    # Convertir les années en chaînes de caractères
+    grouped_df.index = grouped_df.index.astype(str)
+
+    return grouped_df
+
+def dataframe_to_graph(grouped_df: pd.DataFrame) : 
+    # Convertir le DataFrame groupé en ColumnDataSource
+    source = bokeh.models.ColumnDataSource(grouped_df.reset_index())
+    # Les années serviront de catégories pour l'axe x
+    years = grouped_df.index.tolist()
+    # Les activités serviront de catégories pour les barres empilées
+    activities = grouped_df.columns.tolist()
+    # Couleurs pour les différentes activités
+    colors = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+        "#aec7e8", "#ffbb78", "#98df8a", "#ff9896", "#c5b0d5",
+        "#c49c94", "#f7b6d2", "#c7c7c7", "#dbdb8d", "#9edae5"
+    ]  # Ajoutez plus de couleurs si nécessaire
+    # Vérifier le nombre de couleurs et ajuster si nécessaire
+    if len(colors) < len(activities):
+        colors = colors * (len(activities) // len(colors)) + colors[:len(activities) % len(colors)]
+    elif len(colors) > len(activities):
+        colors = colors[:len(activities)]
+    # Créer un graphique
+    graph = bokeh.plotting.figure(x_range=years, height=350, title="Emissions des Activités par Année",
+               toolbar_location=None, tools="")
+    # Ajouter des barres empilées
+    graph.vbar_stack(stackers=activities, x='year', width=0.9, color=colors, source=source,
+                 legend_label=activities)
+    # Configurer les axes
+    graph.y_range.start = 0
+    graph.xgrid.grid_line_color = None
+    graph.yaxis.axis_label = 'Impact'
+    graph.xaxis.axis_label = 'Année'
+    graph.axis.minor_tick_line_color = None
+    graph.outline_line_color = None
+    graph.legend.location = "top_left"
+    graph.legend.orientation = "horizontal"
+    
+    return graph
+
+
+
+pane_bokeh = pn.pane.Bokeh(bokeh.plotting.figure())
+
+
 
 # INTERACTIVE ELEMENTS #######################################################
 ###
@@ -268,15 +241,21 @@ def update_interactive_elements_lca(event):
     #df_activities=updating_col_data_frame(mon_df)
     widget_tabulator.value = df_activities
     widget_tabulator.loading = False
-import datetime
+
+
 
 def update_interactive_elements_temporalization(event):
     df_activities=widget_tabulator.value
+    
+
+    
+
+def update_bokeh_pane(event):
     pane_bokeh.loading = True
-    #bokeh_figure = create_bokeh_figure(y=widget_tabulator.value['float'])
-    bokeh_figure = create_bokeh_figure(dummy_df=dummy_df)
+    bokeh_figure = dataframe_to_graph(grouped_df=dataframe_manipulation(df_temporalized))
     pane_bokeh.object = bokeh_figure
     pane_bokeh.loading = False
+
 
 # https://panel.holoviz.org/reference/widgets/Button.html#buttonhttps://panel.holoviz.org/reference/widgets/Button.html#button
 widget_button_activity.on_click(update_interactive_elements_lca)
@@ -284,7 +263,8 @@ widget_button_activity.on_click(update_interactive_elements_lca)
 # https://panel.holoviz.org/reference/widgets/Button.html#buttonhttps://panel.holoviz.org/reference/widgets/Button.html#button
 widget_button_tabulator.on_click(update_interactive_elements_temporalization)
 
-
+# https://panel.holoviz.org/reference/widgets/Button.html#buttonhttps://panel.holoviz.org/reference/widgets/Button.html#button
+widget_button_update_figure.on_click(update_bokeh_pane)
 
 
 
@@ -303,6 +283,7 @@ pn.Column(
     widget_static_text,
     widget_tabulator,
     widget_button_tabulator,
+    widget_button_update_figure,
     pane_bokeh
 ).servable()
 #%%
