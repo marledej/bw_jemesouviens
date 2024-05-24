@@ -6,6 +6,10 @@
 {octicon}`light-bulb;1em` bw_jemesouviens is a specialized package of the Brightway Software Framework
 ```
 
+```{raw} html
+:file: _static/huggingface.html
+```
+
 ```{toctree}
 ---
 hidden:
