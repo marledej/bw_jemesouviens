@@ -34,7 +34,7 @@ def create_distribution(start,end,dist_type):
     points = len(date_sequence)
 
 
-    if type(dist_type[0]) != str or dist_type[0] == "uniform":
+    if ((dist_type[0]) != "triangular" or (dist_type[0]) != "normal") or dist_type[0] == "uniform":
         #not using the "easy_datetime_distribution" function because it can't handle one unique data point
         distribution = TemporalDistribution(
                     date=date_sequence,
@@ -61,7 +61,7 @@ def create_distribution(start,end,dist_type):
 
 # Function for adding temporal distributions to corresponding exchanges
 
-def add_temporal_distributions(df_nodes):
+def add_temporal_distributions(df_user,df_nodes):
     '''
     Assigns user-defined fixed temporal distributions to exchanges of corresponding nodes
 
@@ -70,13 +70,14 @@ def add_temporal_distributions(df_nodes):
                     |node_id|start|end|dist_type|parameter| and more columns. do not put node_id as index.
                     node_id should be the id that allows to identify the node in the database
     '''
-
-    for nrow, node in df_nodes.iterrows():
+    df_user['node_id']=df_nodes['activity_datapackage_id']
+    for nrow, node in df_user.iterrows():
+        print(df_user)
         for exc in bd.get_node(id = node.node_id).exchanges():
             if exc['type'] != 'production':
                 exc['temporal_distribution'] = create_distribution(
-                    df_nodes.at[node.node_id, 'start'], df_nodes.at[node.node_id, 'end'], 
-                    (df_nodes.at[node.node_id, 'dist_type'], df_nodes.at[node.node_id, 'parameter'])
+                    int(df_user.at[nrow, 'Starting time of the activity']), int(df_user.at[nrow, 'Ending time of the activity']), 
+                    (df_user.at[nrow, 'Type of Temporalization distribution'], df_user.at[nrow, 'Parameters of the distribution'])
                 )
                 exc.save()
 
@@ -123,7 +124,7 @@ def apply_characterization_factors(data,*,use_method=('EF v3.1','climate change'
 
 # Run temporal LCA and get timeline dataframe with impacts
 
-def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
+def calculate_timeline(df_user,df_nodes, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
     """
     calculating the lca timeline. note that the temporal_graph_cutoff and max_calc can notably influence the final results.
     Timeline does not allow to distinguish individual processes/activities
@@ -139,7 +140,7 @@ def calculate_timeline(df, lca,*, temporal_graph_cutoff=0.001, max_calc=3000):
                     used_characterization (tuple): the label of the used characterization method
     """
     print("Temporalizing lca object. Note that temporalization is added to the database on disc.")
-    add_temporal_distributions(df)
+    add_temporal_distributions(df_user=df_user,df_nodes=df_nodes)
     # convert lca object to temporalized lca object
     templca = bt.TemporalisLCA(lca,
                                cutoff=temporal_graph_cutoff,
